@@ -10,7 +10,7 @@ namespace Render.Materials
 {
     public interface IMaterial
     {
-        Task<IEnumerable<LightRay>> GetRayContributors(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming, Direction normal, ISceneObject source);
+        IEnumerable<Task<LightRay>> GetRayContributors(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming, Direction normal, ISceneObject source);
     }
 
     public static partial class MaterialExtensions

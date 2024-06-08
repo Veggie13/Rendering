@@ -49,25 +49,23 @@ namespace RenderTest1
         private async void Form1_Load(object sender, EventArgs e)
         {
             progressBar1.Maximum = 100;
-            var imageTask = new Task<Color[,]>(() => _camera.Snap(panel1.Width, panel1.Height, _retina, new Progress<double>(progress =>
+            var progress = new Progress<double>(progress_ =>
             {
-                Invoke(new Action(() => { progressBar1.Value = (int)(100 * progress); }));
-            })));
-            imageTask.GetAwaiter().OnCompleted(() =>
-            {
-                var image = imageTask.Result;
-                Bitmap bm = new Bitmap(panel1.Width, panel1.Height);
-                for (int x = 0; x < panel1.Width; x++)
-                {
-                    for (int y = 0; y < panel1.Height; y++)
-                    {
-                        bm.SetPixel(x, y, image[x, y]);
-                    }
-                }
-
-                panel1.BackgroundImage = bm;
+                Invoke(new Action(() => { progressBar1.Value = (int)(100 * progress_); }));
             });
-            imageTask.Start();
+
+            var image = await _camera.SnapAsync(panel1.Width, panel1.Height, _retina, progress);
+
+            Bitmap bm = new Bitmap(panel1.Width, panel1.Height);
+            for (int x = 0; x < panel1.Width; x++)
+            {
+                for (int y = 0; y < panel1.Height; y++)
+                {
+                    bm.SetPixel(x, y, image[x, y]);
+                }
+            }
+
+            panel1.BackgroundImage = bm;
         }
     }
 

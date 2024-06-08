@@ -21,10 +21,9 @@ namespace Render.Materials
         #region ISceneObject
         public IFiniteGeometricRegion Shape { get; private set; }
 
-        public Task<IEnumerable<LightRay>> GetLightRays(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming)
+        public IEnumerable<Task<LightRay>> GetLightRays(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming)
         {
-            Direction normal = null;
-            if (!Shape.GetSurfaceNormal(fromPoint, out normal))
+            if (!Shape.GetSurfaceNormal(fromPoint, out var normal))
             {
                 throw new ArgumentException("fromPoint");
             }

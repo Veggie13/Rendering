@@ -8,6 +8,8 @@ namespace Render.Engine
 {
     public class LightRay
     {
+        public static LightRay Dark { get; } = new LightRay(Light.None, 0);
+
         public LightRay(Light light, double initDistance)
         {
             Light = light;
@@ -35,9 +37,14 @@ namespace Render.Engine
             }
         }
 
-        public LightRay Extend(double further)
+        public LightRay ExtendedBy(double further)
         {
             return new LightRay(Light, InitialDistance, Distance + further);
+        }
+
+        public LightRay TransformedBy(ISpectrum spectrum)
+        {
+            return new LightRay(Light.TransformedBy(spectrum), InitialDistance, Distance);
         }
     }
 }

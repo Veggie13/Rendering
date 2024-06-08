@@ -2,46 +2,43 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Render.Engine
 {
-    public class RayCalculation
+    public static class RayCalculation
     {
-        private List<ISceneObject> _exceptions;
-        private Scene _scene;
-        private Ray _ray;
-
-        public RayCalculation(Scene scene, Ray ray, IEnumerable<ISceneObject> exceptions, ISceneObject source = null)
+        private static IEnumerable<Task<LightRay>> DarknessRays
         {
-            _exceptions = exceptions.ToList();
+            get { yield return Task.FromResult(LightRay.Dark); }
+        }
+
+        private static IEnumerable<Task<LightRay>> DistantRays
+        {
+            get { yield return Task.FromResult(new LightRay(Light.White(0.1), 0)); }
+        }
+
+        public static IEnumerable<Task<LightRay>> Run(Scene scene, Ray ray, IEnumerable<ISceneObject> exceptions, ISceneObject source = null)
+        {
             if (source != null)
             {
-                _exceptions.Add(source);
+                exceptions = exceptions.Append(source);
             }
-            _scene = scene;
-            _ray = ray;
-        }
 
-        public async Task<IEnumerable<LightRay>> Run()
-        {
             Vector intersectionPoint = null;
-            ISceneObject intersected = _scene.FirstCollision(_ray, out intersectionPoint, _exceptions);
+            ISceneObject intersected = scene.FirstCollision(ray, out intersectionPoint, exceptions);
             if (intersected == null)
             {
-                if (_ray.Bearing.Azimuth.ValueBetweenPI < 0)
-                    return new[] { new LightRay(Light.None, 0) };
-                return new[] { new LightRay(Light.White(0.1), 0) };
+                if (ray.Bearing.Azimuth.ValueBetweenPI < 0)
+                    return DarknessRays;
+                return DistantRays;
             }
 
-            var rays = await intersected.GetLightRays(_scene, _exceptions, intersectionPoint, _ray.Bearing);
-            return rays.Select(r => r.Extend((_ray.Origin - intersectionPoint).Magnitude)).ToList();
-        }
-
-        public static Task<IEnumerable<LightRay>> Run(Scene scene, Ray ray, IEnumerable<ISceneObject> exceptions, ISceneObject source = null)
-        {
-            return new RayCalculation(scene, ray, exceptions, source).Run();
+            var rays = intersected.GetLightRays(scene, exceptions, intersectionPoint, ray.Bearing);
+            double extension = (ray.Origin - intersectionPoint).Magnitude;
+            return rays.Select(async tlr => (await tlr).ExtendedBy(extension));
         }
     }
 }

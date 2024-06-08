@@ -10,6 +10,6 @@ namespace Render.Engine
     public interface ISceneObject
     {
         IFiniteGeometricRegion Shape { get; }
-        Task<IEnumerable<LightRay>> GetLightRays(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming);
+        IEnumerable<Task<LightRay>> GetLightRays(Scene scene, IEnumerable<ISceneObject> exceptions, Vector fromPoint, Direction incoming);
     }
 }

@@ -60,14 +60,14 @@ namespace Render.Engine
             double total = 2 * width * height;
             var coords = new HashSet<Coord>(getCoordinates(width, height));
             coords.AsParallel()
-                .AwaitAll(c =>
+                .Select(c =>
                 {
-                    try { return getPixelRays(calc, c); }
+                    try { return new { Coord = c, Rays = getPixelRays(calc, c) }; }
                     finally { lock (progress) progress.Report(++count / total); }
-                }, (c, r) => new { Coord = c, Rays = r })
-                .AsParallel().ForAll(item =>
+                })
+                .ForAll(item =>
                 {
-                    var totalLight = item.Rays.Select(r => r.AttenutatedLight).Combined();
+                    var totalLight = item.Rays.LazyAwait().Select(r => r.AttenutatedLight).Combined();
                     pixels[item.Coord.X, item.Coord.Y] = retina[totalLight];
                     lock (progress) { progress.Report(++count / total); }
                 });
@@ -80,17 +80,17 @@ namespace Render.Engine
             return snap(width, height, retina, progress ?? new Progress<double>());
         }
 
-        public async Task<TColor[,]> SnapAsync<TColor>(int width, int height, IRetina<TColor> retina, IProgress<double> progress)
+        public Task<TColor[,]> SnapAsync<TColor>(int width, int height, IRetina<TColor> retina, IProgress<double> progress)
         {
-            return snap(width, height, retina, progress);
+            return Task.Run(() => snap(width, height, retina, progress));
         }
 
         private static IEnumerable<Coord> getCoordinates(int width, int height)
         {
-            return Enumerable.Range(0, width).AsParallel().SelectMany(x => Enumerable.Range(0, height).Select(y => new Coord() { X = x, Y = y }));
+            return Enumerable.Range(0, width).SelectMany(x => Enumerable.Range(0, height).Select(y => new Coord() { X = x, Y = y }));
         }
 
-        private Task<IEnumerable<LightRay>> getPixelRays(CoordVectorCalculator calc, Coord coord)
+        private IEnumerable<Task<LightRay>> getPixelRays(CoordVectorCalculator calc, Coord coord)
         {
             return RayCalculation.Run(this.Scene, Origin.RayThrough(calc.GetCoordVector(coord)), EmptyExceptions);
         }
